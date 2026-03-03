@@ -1,31 +1,44 @@
-name: Build for macOS
+name: Build Cross-Platform
 
 on: [push, pull_request]
 
 jobs:
-  build-mac:
-    runs-on: macos-latest
+  build:
+    # 矩阵设置：同时跑两个系统
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    
+    runs-on: ${{ matrix.os }}
 
     steps:
     - name: 检查代码
       uses: actions/checkout@v4
 
-    - name: 设置 Python 环境
+    - name: 设置 Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11' # 匹配您项目当前使用的 Python 版本
+        python-version: '3.10'
 
     - name: 安装依赖
       run: |
         pip install -r requirements.txt
 
-    - name: 开始打包 (PyInstaller)
+    - name: 打包程序 (Windows)
+      if: matrix.os == 'windows-latest'
       run: |
-        # 使用 snake.py 作为主程序名，并设置输出名称为 SnakeGame_v1.0_macOS
-        pyinstaller --noconsole --onefile --windowed --name SnakeGame_v1.0_macOS snake.py
+        pyinstaller --noconsole --onefile --name SnakeGame_Windows snake.py
 
-    - name: 上传打包好的文件
+    - name: 打包程序 (MacOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        pyinstaller --noconsole --onefile --windowed --name SnakeGame_MacOS snake.py
+
+    - name: 上传成果
       uses: actions/upload-artifact@v4
       with:
-        name: SnakeGame-MacOS
-        path: dist/SnakeGame_v1.0_macOS.app
+        name: SnakeGame-${{ matrix.os }}
+        path: |
+          dist/*.exe
+          dist/*.app
+          dist/*.zip
